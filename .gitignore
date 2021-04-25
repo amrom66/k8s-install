@@ -1,0 +1,3 @@
+bin/kubelet
+bin/kube-apiserver
+bin/kube-controller-manager
