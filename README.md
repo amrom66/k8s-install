@@ -14,3 +14,10 @@ date: 2021-03-07
 使用手册：
 1. 配置`environment.sh`
 2. 运行脚本`bash k8s-install.sh`
+
+
+部署coredns
+
+source /opt/k8s/bin/environment.sh
+./deploy.sh -i ${CLUSTER_DNS_SVC_IP} -d ${CLUSTER_DNS_DOMAIN} | kubectl apply -f -
+

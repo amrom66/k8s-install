@@ -1,0 +1,61 @@
+version: 2
+
+initWorkingDir: &initWorkingDir
+  type: shell
+  name: Initialize Working Directory
+  pwd: /
+  command: |
+    mkdir -p ~/go/src/${CIRCLE_PROJECT_USERNAME}/deployment
+    sudo chown -R circleci ~/go
+    mkdir -p ~/go/out/tests
+    mkdir -p ~/go/out/logs
+    mkdir -p /home/circleci/logs
+    GOROOT=$(go env GOROOT)
+    sudo rm -r $(go env GOROOT)
+    sudo mkdir $GOROOT
+    LATEST=$(curl -s https://golang.org/VERSION?m=text)
+    curl https://dl.google.com/go/${LATEST}.linux-amd64.tar.gz | sudo tar xz -C $GOROOT --strip-components=1
+
+integrationDefaults: &integrationDefaults
+  machine:
+    image: ubuntu-1604:201903-01
+  working_directory: ~/go/src/${CIRCLE_PROJECT_USERNAME}/deployment
+  environment:
+    - K8S_VERSION: v1.20.2
+    - KUBECONFIG: /home/circleci/.kube/kind-config-kind
+    - KIND_VERSION: v0.10.0
+
+setupKubernetes: &setupKubernetes
+  - run:
+      name: Setup Kubernetes
+      command: ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci/build/kubernetes/k8s_setup.sh
+
+jobs:
+  k8s-deployment-tests:
+    <<: *integrationDefaults
+    steps:
+      - <<: *initWorkingDir
+      - checkout
+      - run:
+          name: Get CI repo
+          command : |
+            mkdir -p ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci
+            git clone https://github.com/${CIRCLE_PROJECT_USERNAME}/ci ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci
+      - run:
+          name: Clone CoreDNS repo
+          command: |
+            mkdir -p ~/go/src/${CIRCLE_PROJECT_USERNAME}/coredns
+            git clone https://github.com/${CIRCLE_PROJECT_USERNAME}/coredns ~/go/src/${CIRCLE_PROJECT_USERNAME}/coredns
+      - <<: *setupKubernetes
+      - run:
+          name: Run Kubernetes deployment tests
+          command: |
+            cd ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci/test/k8sdeployment
+            go mod download
+            GO111MODULE=on go test -v ./...
+
+workflows:
+  version: 2
+  integration-tests:
+    jobs:
+      - k8s-deployment-tests
