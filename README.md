@@ -18,6 +18,11 @@ date: 2021-03-07
 
 部署coredns
 
+```code
+
 source /opt/k8s/bin/environment.sh
 ./deploy.sh -i ${CLUSTER_DNS_SVC_IP} -d ${CLUSTER_DNS_DOMAIN} | kubectl apply -f -
+
+```
+
 
